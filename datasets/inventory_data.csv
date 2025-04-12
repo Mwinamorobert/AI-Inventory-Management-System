@@ -1,0 +1,21 @@
+name,quantity,price,supplier,location
+Maize Flour,100,120.50,AgriCorp,Nairobi
+Sugar,50,80.00,SweetDeal,Mombasa
+Rice,200,150.75,GrainHub,Kisumu
+Cooking Oil,30,200.00,OilMart,Nairobi
+Beans,75,90.25,AgriCorp,Eldoret
+Wheat Flour,120,130.00,GrainHub,Nakuru
+Tea Leaves,40,250.00,TeaCo,Mombasa
+Salt,60,20.50,SaltWorks,Nairobi
+Milk Powder,25,300.00,DairyBest,Kisumu
+Soap Bars,80,45.00,CleanCo,Eldoret
+Maize Flour,90,115.00,AgriCorp,Mombasa
+Sugar,70,85.00,SweetDeal,Nairobi
+Rice,150,145.50,GrainHub,Eldoret
+Cooking Oil,50,210.00,OilMart,Kisumu
+Beans,60,95.00,AgriCorp,Nakuru
+Wheat Flour,100,125.00,GrainHub,Nairobi
+Tea Leaves,30,260.00,TeaCo,Kisumu
+Salt,100,22.00,SaltWorks,Mombasa
+Milk Powder,20,310.00,DairyBest,Eldoret
+Soap Bars,90,40.00,CleanCo,Nakuru

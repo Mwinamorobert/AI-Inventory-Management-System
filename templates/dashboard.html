@@ -1,0 +1,255 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/script.js' %}"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">AI Inventory</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link active" href="{% url 'dashboard' %}">🏠 Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'locations' %}">📍 Locations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'suppliers' %}">🤝 Suppliers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'insights' %}">🧠 Insights</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><button class="nav-link btn" data-bs-toggle="modal" data-bs-target="#addItemModal">➕ Add Item</button></li>
+                    <li class="nav-item"><button id="theme-toggle" class="nav-link btn">🌙 Toggle Theme</button></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">🚪 Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container my-4">
+        <h2 class="text-center mb-4">Welcome to Your Inventory!</h2>
+        <div class="row mb-4">
+            <div class="col-12 col-md-4">
+                <label for="locationFilter" class="form-label">Filter by Location 🌍</label>
+                <select id="locationFilter" class="form-select" onchange="filterInventory()">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                        <option value="{{ location.name }}" {% if location.name == location_filter %}selected{% endif %}>{{ location.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">📊 Stock Levels</h4>
+                        <div id="stock-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🌍 Stock by Location</h4>
+                        <div id="location-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🤝 Supplier Performance</h4>
+                        <div id="supplier-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🔮 Demand Forecast</h4>
+                        <div id="forecast-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🚨 Anomalies Detected</h4>
+                        <div id="anomalies-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">📋 Inventory List</h4>
+                        <div class="table-responsive" id="inventory-table-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                            <table class="table table-striped d-none" id="inventory-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Qty</th>
+                                        <th>Price</th>
+                                        <th>Supplier</th>
+                                        <th>Location</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4 alert-container"></div>
+    </div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">➕ Add New Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-item-form" onsubmit="event.preventDefault(); addItem();">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" name="quantity" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price (KSh)</label>
+                        <input type="number" step="0.01" name="price" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supplier</label>
+                        <input type="text" name="supplier" class="form-control" required placeholder="Enter supplier name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location</label>
+                        <select name="location" class="form-select" required>
+                            <option value="">Select Location</option>
+                            {% for location in locations %}
+                                <option value="{{ location.name }}">{{ location.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Add Item</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="stock-chart" class="chart-container">
+    <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+</div>
+<div id="location-chart" class="chart-container">
+    <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+</div>
+<div id="supplier-chart" class="chart-container">
+    <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+</div>
+<div id="forecast-chart" class="chart-container">
+    <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+</div>
+<div id="anomalies-chart" class="chart-container">
+    <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+</div>
+
+    <!-- Edit Item Modal -->
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editItemModalLabel">✏️ Edit Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-item-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" name="quantity" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price (KSh)</label>
+                            <input type="number" step="0.01" name="price" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Supplier</label>
+                            <input type="text" name="supplier" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <select name="location" class="form-select" required>
+                                {% for location in locations %}
+                                    <option value="{{ location.name }}">{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Item</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleButton = document.getElementById('theme-toggle');
+            const body = document.body;
+    
+            // Load saved theme
+            if (localStorage.getItem('theme') === 'dark') {
+                body.classList.add('dark-theme');
+                toggleButton.textContent = '☀️ Toggle Theme';
+            }
+    
+            // Toggle theme on click
+            toggleButton.addEventListener('click', () => {
+                body.classList.toggle('dark-theme');
+                if (body.classList.contains('dark-theme')) {
+                    localStorage.setItem('theme', 'dark');
+                    toggleButton.textContent = '☀️ Toggle Theme';
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    toggleButton.textContent = '🌙 Toggle Theme';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insights - AI Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script id="forecast-chart-data" type="application/json">{{ forecast_chart_data|safe }}</script>
+    <script id="anomalies-chart-data" type="application/json">{{ anomalies_chart_data|safe }}</script>
+    <script id="stock-trend-data" type="application/json">{{ stock_trend_data|safe }}</script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">📦 AI Inventory</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">🏠 Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'locations' %}">📍 Locations</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'suppliers' %}">🤝 Suppliers</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{% url 'insights' %}">🧠 Insights</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><button id="theme-toggle" class="nav-link btn">🌙 Toggle Theme</button></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">🚪 Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container my-4">
+        <h2 class="text-center mb-4">AI Insights 🧠</h2>
+        <div class="row g-4">
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🔮 Demand Forecast</h4>
+                        <div id="forecast-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">🚨 Anomalies Detected</h4>
+                        <div id="anomalies-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm fade-in">
+                    <div class="card-body">
+                        <h4 class="card-title">📊 Stock Trends</h4>
+                        <div id="stock-trend-chart" class="chart-container">
+                            <div class="spinner-container"><div class="spinner-border text-primary" role="status"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const forecastData = "{{ forecast_chart_data|safe|default:'null' }}";
+            if (forecastData) {
+                Plotly.newPlot('forecast-chart', JSON.parse(forecastData).data, JSON.parse(forecastData).layout);
+            } else {
+                document.getElementById('forecast-chart').innerHTML = '<p class="text-muted text-center">No forecast data yet! Add more items. 🌟</p>';
+            }
+
+            const anomaliesData = "{{ anomalies_chart_data|safe|default:'null' }}";
+            if (anomaliesData) {
+                Plotly.newPlot('anomalies-chart', JSON.parse(anomaliesData).data, JSON.parse(anomaliesData).layout);
+            } else {
+                document.getElementById('anomalies-chart').innerHTML = '<p class="text-muted text-center">No anomalies! Looking good! 🌟</p>';
+            }
+
+            const stockTrendData = "{{ stock_trend_data|safe|default:'null' }}";
+            if (stockTrendData) {
+                Plotly.newPlot('stock-trend-chart', JSON.parse(stockTrendData).data, JSON.parse(stockTrendData).layout);
+            } else {
+                document.getElementById('stock-trend-chart').innerHTML = '<p class="text-muted text-center">No trend data yet! 🌟</p>';
+            }
+
+            const lowStock = "{{ low_stock|safe|default:'[]' }}";
+            const restock = "{{ restock_suggestions|safe|default:'[]' }}";
+            const insightsRow = document.querySelector('.row.g-4');
+            if (lowStock.length > 0) {
+                const lowStockDiv = document.createElement('div');
+                lowStockDiv.className = 'col-12';
+                lowStockDiv.innerHTML = '<div class="card shadow-sm fade-in"><div class="card-body"><h4 class="card-title">⚠️ Low Stock Warnings</h4><ul>' +
+                    lowStock.map(item => `<li>${item.name}: ${item.quantity} units (${item.location})</li>`).join('') + '</ul></div></div>';
+                insightsRow.appendChild(lowStockDiv);
+            }
+            if (restock.length > 0) {
+                const restockDiv = document.createElement('div');
+                restockDiv.className = 'col-12';
+                restockDiv.innerHTML = '<div class="card shadow-sm fade-in"><div class="card-body"><h4 class="card-title">📦 Restock Suggestions</h4><ul>' +
+                    restock.map(item => `<li>${item.name}: Add ${item.suggested_quantity} units</li>`).join('') + '</ul></div></div>';
+                insightsRow.appendChild(restockDiv);
+            }
+
+            // Theme toggle logic matching suppliers.html
+            const toggleButton = document.getElementById('theme-toggle');
+            const body = document.body;
+            if (localStorage.getItem('theme') === 'dark') {
+                body.classList.add('dark-theme');
+                toggleButton.textContent = '☀️ Toggle Theme';
+            }
+            toggleButton.addEventListener('click', () => {
+                body.classList.toggle('dark-theme');
+                if (body.classList.contains('dark-theme')) {
+                    localStorage.setItem('theme', 'dark');
+                    toggleButton.textContent = '☀️ Toggle Theme';
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    toggleButton.textContent = '🌙 Toggle Theme';
+                }
+            });
+        });
+    </script>
+    <!-- At end of <body>, before </html> -->
+    <script src="{% static 'js/insights.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suppliers - AI Inventory System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">📦 AI Inventory</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">🏠 Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'locations' %}">📍 Locations</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{% url 'suppliers' %}">🤝 Suppliers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'insights' %}">🧠 Insights</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><button class="nav-link btn" data-bs-toggle="modal" data-bs-target="#addSupplierModal">➕ Add Supplier</button></li>
+                    <li class="nav-item"><button id="theme-toggle" class="nav-link btn">🌙 Toggle Theme</button></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">🚪 Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container my-4">
+        <h2 class="text-center mb-4">Your Suppliers 🤝</h2>
+        <div class="row g-4">
+            {% for supplier in suppliers %}
+                <div class="col-12 col-md-4">
+                    <div class="card shadow-sm fade-in">
+                        <div class="card-body">
+                            <h5 class="card-title">🤝 {{ supplier.name }}</h5>
+                            <p class="card-text">
+                                <strong>Items Supplied:</strong> {{ supplier.item_count }}<br>
+                                <strong>Total Quantity:</strong> {{ supplier.total_stock|default:0 }}
+                            </p>
+                            <a href="{% url 'dashboard' %}?supplier={{ supplier.name }}" class="btn btn-primary btn-sm">View in Dashboard</a>
+                            <a href="{% url 'edit_supplier' supplier.id %}" class="btn btn-warning btn-sm">✏️ Edit</a>
+                            <form action="{% url 'delete_supplier' supplier.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">🗑️ Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12 text-center fade-in">
+                    <p class="text-muted">No suppliers yet! Add one to get started. 🌟</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Add Supplier Modal -->
+    <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addSupplierModalLabel">➕ Add New Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-supplier-form" onsubmit="event.preventDefault(); addSupplier();">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Supplier Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Add Supplier</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleButton = document.getElementById('theme-toggle');
+            const body = document.body;
+            if (localStorage.getItem('theme') === 'dark') {
+                body.classList.add('dark-theme');
+                toggleButton.textContent = '☀️ Toggle Theme';
+            }
+            toggleButton.addEventListener('click', () => {
+                body.classList.toggle('dark-theme');
+                if (body.classList.contains('dark-theme')) {
+                    localStorage.setItem('theme', 'dark');
+                    toggleButton.textContent = '☀️ Toggle Theme';
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    toggleButton.textContent = '🌙 Toggle Theme';
+                }
+            });
+        });
+
+        function addSupplier() {
+            const form = document.getElementById('add-supplier-form');
+            const data = {
+                name: form.querySelector('[name="name"]').value
+            };
+            fetch('/api/add_supplier/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to add supplier');
+                return response.json();
+            })
+            .then(data => {
+                form.reset();
+                bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add supplier');
+            });
+        }
+    </script>
+</body>
+</html>
